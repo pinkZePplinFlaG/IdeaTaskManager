@@ -4,8 +4,13 @@ import java.awt.*;
 import java.awt.event.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.swing.*;
+
+import com.digitalnotepad.dataTransfer.GUIToDatabase;
+import com.digitalnotepad.database.MySQLConnector;
 
 public class IdeaTaskGUI extends JPanel implements ActionListener{
 
@@ -31,6 +36,8 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
     protected JTextArea textArea;
     protected JPanel submitPanel;
     protected JButton submitButton;
+
+    protected GUIToDatabase dataTransferObj;
     
     protected Integer GAP = 10;
 
@@ -63,26 +70,11 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
 
     protected ArrayList<String> actions;
 
-    public void actionPerformed(ActionEvent e) {
-        String actionCommand = e.getActionCommand();    
-        if(actionCommand.equals(POPULATE_TASK_TEXT) || actionCommand.equals(POPULATE_IDEA_TEXT)){
-            textArea.setText(EMPTY_STRING);
-            textArea.append(TITLE);
-            textArea.append(CREATED+ LocalDate.now().toString()+NEW_LINE);
-            if(actionCommand.equals(POPULATE_TASK_TEXT)){
-                textArea.append(FINISHED);
-                textArea.append(STEPS);
-            }
-            if(actionCommand.equals(POPULATE_IDEA_TEXT)){
-                textArea.append(IMPLEMENTED);
-                textArea.append(DESCRIPTION);
-            }
-        }else{
-            textArea.setText(EMPTY_STRING);
-        }
-    }
+    protected Boolean isTaskSelected;
+    protected Boolean isIdeaSelected;
 
     public IdeaTaskGUI(){
+        dataTransferObj = new GUIToDatabase();
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         
         btnPanel = new JPanel();
@@ -120,10 +112,43 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
         actions.add(POPULATE_TASK_TEXT);
         actions.add(POPULATE_IDEA_TEXT);
         actions.add(SUBMIT);
+
+        isIdeaSelected = false;
+        isTaskSelected = false;
     }
 
     private Dimension createDimension(Integer width, Integer height){
         return new Dimension(width, height);
+    }
+
+    public void actionPerformed(ActionEvent e) {
+        String actionCommand = e.getActionCommand();    
+        if(actionCommand.equals(POPULATE_TASK_TEXT) || actionCommand.equals(POPULATE_IDEA_TEXT)){
+            textArea.setText(EMPTY_STRING);
+            textArea.append(TITLE);
+            textArea.append(CREATED+ LocalDate.now().toString()+NEW_LINE);
+            if(actionCommand.equals(POPULATE_TASK_TEXT)){
+                textArea.append(FINISHED);
+                textArea.append(STEPS);
+                isIdeaSelected = false;
+                isTaskSelected = true;
+            }
+            if(actionCommand.equals(POPULATE_IDEA_TEXT)){
+                textArea.append(IMPLEMENTED);
+                textArea.append(DESCRIPTION);
+                isIdeaSelected = true;
+                isTaskSelected = false;
+            }
+        }else{
+            textArea.setText(EMPTY_STRING);
+            if(isIdeaSelected){
+                // ArrayList<String> params = new ArrayList<>();
+                // params.add("art");
+                // String queryType = "selectAll";
+                // List<String> response = dataTransferObj.queryDatabase(params, queryType);   
+                // TODO write code to perform an insert for ideas 
+            }
+        }
     }
     
     private static void createAndShowGUI() {
