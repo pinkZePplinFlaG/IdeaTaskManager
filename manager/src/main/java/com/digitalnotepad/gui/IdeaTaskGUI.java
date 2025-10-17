@@ -2,32 +2,20 @@ package com.digitalnotepad.gui;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import javax.swing.*;
 
-import com.digitalnotepad.dataTransfer.GUIToDatabase;
-import com.digitalnotepad.database.MySQLConnector;
+import com.digitalnotepad.Constants;
+import com.digitalnotepad.SqlQueryBuilderExecutor;
+import com.textparser.TextParser;
+import com.pair.Pair;
+import com.params.Params;
 
 public class IdeaTaskGUI extends JPanel implements ActionListener{
-
-    protected static String APP_NAME = "Digital Notepad";
-    protected static String APP_VERSION = "1.0-SNAPSHOT";
-    protected static String POPULATE_TASK_TEXT = "Task";
-    protected static String POPULATE_IDEA_TEXT = "Idea";
-    protected static String SUBMIT = "Submit";
-    protected static String EMPTY_STRING = "";
-    protected static String TITLE = "Title: \n";
-    protected static String CREATED = "Created: ";
-    protected static String FINISHED = "Finished: TBD\n\n";
-    protected static String STEPS = "Steps: \n1. ";
-    protected static String IMPLEMENTED = "Implemented: TBD\n\n";
-    protected static String DESCRIPTION = "Description: \n";
-    protected static String NEW_LINE = "\n";
-    protected static String DASH = " - ";
 
     protected JPanel btnPanel;
     protected JButton ideaBtn;
@@ -37,61 +25,34 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
     protected JPanel submitPanel;
     protected JButton submitButton;
 
-    protected GUIToDatabase dataTransferObj;
-    
-    protected Integer GAP = 10;
-
-    protected Integer W = 8;
-    protected Integer H = 10;
-    
-    protected Integer MAX_FRAME_WIDTH = W * 100;
-    protected Integer MAX_FRAME_HEIGHT = H * 100;
-    
-    protected Integer BTN_PANEL_WIDTH = (MAX_FRAME_WIDTH) - GAP;
-    protected Integer BTN_PANEL_HEIGHT = (MAX_FRAME_HEIGHT/8) - GAP;
-
-    protected Integer SUBMIT_PANEL_WIDTH = MAX_FRAME_WIDTH - GAP;
-    protected Integer SUBMIT_PANEL_HEIGHT = MAX_FRAME_HEIGHT/8 - GAP;
-
-    protected Integer TEXTAREA_PANEL_WIDTH = MAX_FRAME_WIDTH - GAP;
-    protected Integer TEXTAREA_PANEL_HEIGHT = 3*(MAX_FRAME_HEIGHT/8) - GAP;
-
-    protected Integer IDEA_BTN_WIDTH = BTN_PANEL_WIDTH/2 - GAP;
-    protected Integer IDEA_BTN_HEIGHT = BTN_PANEL_HEIGHT - GAP;
-
-    protected Integer TASK_BTN_WIDTH = BTN_PANEL_WIDTH/2 - GAP;
-    protected Integer TASK_BTN_HEIGHT = BTN_PANEL_HEIGHT - GAP;
-    
-    protected Integer TEXTAREA_WIDTH = TEXTAREA_PANEL_WIDTH - GAP;
-    protected Integer TEXTAREA_HEIGHT = TEXTAREA_PANEL_HEIGHT - GAP;
-
-    protected Integer SUBMIT_BTN_WIDTH = SUBMIT_PANEL_WIDTH - GAP;
-    protected Integer SUBMIT_BTN_HEIGHT = SUBMIT_PANEL_HEIGHT - GAP;
-
     protected ArrayList<String> actions;
 
     protected Boolean isTaskSelected;
     protected Boolean isIdeaSelected;
 
+    protected Params<String> params;
+
+    protected SqlQueryBuilderExecutor be;
+
     public IdeaTaskGUI(){
-        dataTransferObj = new GUIToDatabase();
+        be = new SqlQueryBuilderExecutor();
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         
         btnPanel = new JPanel();
-        ideaBtn  = new JButton(POPULATE_IDEA_TEXT);
-        taskBtn  = new JButton(POPULATE_TASK_TEXT);
+        ideaBtn  = new JButton(Constants.POPULATE_IDEA_TEXT);
+        taskBtn  = new JButton(Constants.POPULATE_TASK_TEXT);
         textAreaPanel = new JPanel();
         textArea = new JTextArea();
         submitPanel = new JPanel();
-        submitButton = new JButton(SUBMIT);
+        submitButton = new JButton(Constants.SUBMIT);
 
-        ideaBtn.setPreferredSize(createDimension(IDEA_BTN_WIDTH, IDEA_BTN_HEIGHT));
-        taskBtn.setPreferredSize(createDimension(TASK_BTN_WIDTH, TASK_BTN_HEIGHT));
-        btnPanel.setPreferredSize(createDimension(BTN_PANEL_WIDTH, BTN_PANEL_HEIGHT));
-        textArea.setPreferredSize(createDimension(TEXTAREA_WIDTH, TEXTAREA_HEIGHT));
-        textAreaPanel.setPreferredSize(createDimension(TEXTAREA_PANEL_WIDTH, TEXTAREA_PANEL_HEIGHT));
-        submitButton.setPreferredSize(createDimension(SUBMIT_BTN_WIDTH, SUBMIT_BTN_HEIGHT));
-        submitPanel.setPreferredSize(createDimension(SUBMIT_PANEL_WIDTH, SUBMIT_PANEL_HEIGHT));
+        ideaBtn.setPreferredSize(createDimension(Constants.IDEA_BTN_WIDTH, Constants.IDEA_BTN_HEIGHT));
+        taskBtn.setPreferredSize(createDimension(Constants.TASK_BTN_WIDTH, Constants.TASK_BTN_HEIGHT));
+        btnPanel.setPreferredSize(createDimension(Constants.BTN_PANEL_WIDTH, Constants.BTN_PANEL_HEIGHT));
+        textArea.setPreferredSize(createDimension(Constants.TEXTAREA_WIDTH, Constants.TEXTAREA_HEIGHT));
+        textAreaPanel.setPreferredSize(createDimension(Constants.TEXTAREA_PANEL_WIDTH, Constants.TEXTAREA_PANEL_HEIGHT));
+        submitButton.setPreferredSize(createDimension(Constants.SUBMIT_BTN_WIDTH, Constants.SUBMIT_BTN_HEIGHT));
+        submitPanel.setPreferredSize(createDimension(Constants.SUBMIT_PANEL_WIDTH, Constants.SUBMIT_PANEL_HEIGHT));
 
         ideaBtn.addActionListener(this);
         taskBtn.addActionListener(this);
@@ -109,9 +70,9 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
         add(submitPanel);
 
         actions = new ArrayList<String>();
-        actions.add(POPULATE_TASK_TEXT);
-        actions.add(POPULATE_IDEA_TEXT);
-        actions.add(SUBMIT);
+        actions.add(Constants.POPULATE_TASK_TEXT);
+        actions.add(Constants.POPULATE_IDEA_TEXT);
+        actions.add(Constants.SUBMIT);
 
         isIdeaSelected = false;
         isTaskSelected = false;
@@ -123,37 +84,63 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
 
     public void actionPerformed(ActionEvent e) {
         String actionCommand = e.getActionCommand();    
-        if(actionCommand.equals(POPULATE_TASK_TEXT) || actionCommand.equals(POPULATE_IDEA_TEXT)){
-            textArea.setText(EMPTY_STRING);
-            textArea.append(TITLE);
-            textArea.append(CREATED+ LocalDate.now().toString()+NEW_LINE);
-            if(actionCommand.equals(POPULATE_TASK_TEXT)){
-                textArea.append(FINISHED);
-                textArea.append(STEPS);
+        if(actionCommand.equals(Constants.POPULATE_TASK_TEXT) || actionCommand.equals(Constants.POPULATE_IDEA_TEXT)){
+            textArea.setText(Constants.EMPTY_STRING);
+            textArea.append(Constants.TITLE);
+            textArea.append(Constants.CATEGORY);
+            textArea.append(Constants.CREATED+ LocalDate.now().toString()+Constants.NEW_LINE);
+            
+            if(actionCommand.equals(Constants.POPULATE_TASK_TEXT)){
+                textArea.append(Constants.FINISHED);
+                textArea.append(Constants.STEPS);
                 isIdeaSelected = false;
                 isTaskSelected = true;
             }
-            if(actionCommand.equals(POPULATE_IDEA_TEXT)){
-                textArea.append(IMPLEMENTED);
-                textArea.append(DESCRIPTION);
+
+            if(actionCommand.equals(Constants.POPULATE_IDEA_TEXT)){
+                textArea.append(Constants.IMPLEMENTED);
+                textArea.append(Constants.DESCRIPTION);
                 isIdeaSelected = true;
                 isTaskSelected = false;
             }
         }else{
-            textArea.setText(EMPTY_STRING);
-            if(isIdeaSelected){
-                // ArrayList<String> params = new ArrayList<>();
-                // params.add("art");
-                // String queryType = "selectAll";
-                // List<String> response = dataTransferObj.queryDatabase(params, queryType);   
-                // TODO write code to perform an insert for ideas 
+            params = new Params<String>(new HashMap<>());
+            String text = textArea.getText();
+            params.addParam(Constants.TABLE_NAME_KEY, TextParser.findCat(text));
+            params.addParam(Constants.TITLE_KEY,TextParser.findTitle(text));
+
+            Boolean isTask = false;
+            Boolean isIdea = false;
+            if(isIdeaSelected){//insert idea from textarea into database
+                params.addParam(Constants.IMPLEMENTED_KEY, TextParser.findImpl(text));
+                params.addParam(Constants.DESCRIPTION_KEY, TextParser.findDesc(text));
+                isTaskSelected = false;
+                isIdea = true;
+            }else if(isTaskSelected){//insert task from textarea into database
+                params.addParam(Constants.FINISHED_KEY, TextParser.findFin(text));
+                params.addParam(Constants.STEPS_KEY, TextParser.findSteps(text));
+                isIdeaSelected = false;
+                isTask = true;
             }
+            
+            Pair<Boolean, SQLException> response = be.buildInsertStatementAndExecute(params);
+            textArea.setText(Constants.EMPTY_STRING);
+            
+            if(isIdea && response.getLeft())
+                textArea.append(Constants.IDEAS_RESP_MSG_SUCCESS);
+            else if(isIdea)
+                textArea.append(Constants.IDEAS_RESP_MSG_FAIL);
+            
+            if(isTask && response.getLeft())
+                textArea.append(Constants.TASKS_RESP_MSG_SUCCESS);
+            else if(isTask)
+                textArea.append(Constants.TASKS_RESP_MSG_FAIL);
         }
     }
     
     private static void createAndShowGUI() {
         //Create and set up the window.
-        JFrame frame = new JFrame(APP_NAME + DASH + APP_VERSION);
+        JFrame frame = new JFrame(Constants.APP_NAME + Constants.DASH + Constants.APP_VERSION);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
  
         //Add contents to the window.

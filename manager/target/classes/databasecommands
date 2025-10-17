@@ -1,3 +1,21 @@
+SHOW DATABASES;
+
+SHOW TABLES;
+
+DROP TABLE [table_name]
+
+CREATE DATABASE ideas;
+
+CREATE DATABASE tasks;
+
+CREATE USER 'java'@'localhost' IDENTIFIED BY 'password';
+
+GRANT SELECT, INSERT ON ideas.art TO 'java'@'localhost';
+
+USE ideas;
+
+DESCRIBE ideas;
+
 CREATE TABLE art
 (
   id              INT unsigned NOT NULL AUTO_INCREMENT, # Unique ID for the record
@@ -8,15 +26,26 @@ CREATE TABLE art
   PRIMARY KEY     (id)                                  # Make the id the primary key
 );
 
-INSERT INTO art ( title, created, implemented, description) VALUES
-  ( 'Native American Flute', '2025-07-01', 'TBD' , 'A wooden native american drone flute'),
-  ( 'LED juggling balls', '2025-10-01', 'TBD' , 'Make custom juggling balls with changing LED lights'),
-  ( 'Wooden juggling pins', '2025-10-01', 'TBD' , 'Make custom wooden juggling pins from re-used materials' );
-
-SELECT * FROM art;
-
 SELECT description FROM art WHERE title = 'Native American Flute';
 
-CREATE USER 'java'@'localhost' IDENTIFIED BY 'password';
+INSERT INTO art ( title, created, implemented, description) VALUES (?,?,?,?);
 
-GRANT SELECT, INSERT ON ideas.art TO 'java'@'localhost';
+USE tasks;
+
+GRANT SELECT, INSERT ON tasks.jobsearch TO 'java'@'localhost';
+
+DESCRIBE jobsearch
+
+CREATE TABLE jobsearch
+(
+  id              INT unsigned NOT NULL AUTO_INCREMENT, # Unique ID for the record
+  title           VARCHAR(150) NOT NULL,                # title of idea
+  created         DATE NOT NULL,                        # creation date
+  finished        VARCHAR(150) NOT NULL,                # implementation date of idea
+  steps           VARCHAR(150) NOT NULL,                # description of idea
+  PRIMARY KEY     (id)                                  # Make the id the primary key
+);
+
+INSERT INTO jobseach ( title, created, finished, steps) VALUES (?,?,?,?);
+
+SELECT * FROM art;
