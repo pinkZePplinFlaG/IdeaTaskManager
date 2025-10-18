@@ -9,8 +9,8 @@ import java.util.HashMap;
 
 import javax.swing.*;
 
-import com.digitalnotepad.Constants;
-import com.digitalnotepad.SqlQueryBuilderExecutor;
+import com.constants.Constants;
+import com.digitalnotepad.sql.SqlQueryBuilderExecutor;
 import com.textparser.TextParser;
 import com.pair.Pair;
 import com.params.Params;
@@ -104,19 +104,20 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
                 isTaskSelected = false;
             }
         }else{
-            params = new Params<String>(new HashMap<>());
             String text = textArea.getText();
+            
+            params = new Params<String>(new HashMap<>());
             params.addParam(Constants.TABLE_NAME_KEY, TextParser.findCat(text));
             params.addParam(Constants.TITLE_KEY,TextParser.findTitle(text));
 
             Boolean isTask = false;
             Boolean isIdea = false;
-            if(isIdeaSelected){//insert idea from textarea into database
+            if(isIdeaSelected){
                 params.addParam(Constants.IMPLEMENTED_KEY, TextParser.findImpl(text));
                 params.addParam(Constants.DESCRIPTION_KEY, TextParser.findDesc(text));
                 isTaskSelected = false;
                 isIdea = true;
-            }else if(isTaskSelected){//insert task from textarea into database
+            }else if(isTaskSelected){
                 params.addParam(Constants.FINISHED_KEY, TextParser.findFin(text));
                 params.addParam(Constants.STEPS_KEY, TextParser.findSteps(text));
                 isIdeaSelected = false;
@@ -126,15 +127,21 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
             Pair<Boolean, SQLException> response = be.buildInsertStatementAndExecute(params);
             textArea.setText(Constants.EMPTY_STRING);
             
-            if(isIdea && response.getLeft())
+            if(isIdea && response.getLeft()){
                 textArea.append(Constants.IDEAS_RESP_MSG_SUCCESS);
-            else if(isIdea)
+            }else if(isIdea){
                 textArea.append(Constants.IDEAS_RESP_MSG_FAIL);
+                textArea.append(Constants.NEW_LINE + response.getRight().getErrorCode());
+                textArea.append(Constants.NEW_LINE + response.getRight().getLocalizedMessage());
+            }
             
-            if(isTask && response.getLeft())
+            if(isTask && response.getLeft()){
                 textArea.append(Constants.TASKS_RESP_MSG_SUCCESS);
-            else if(isTask)
+            }else if(isTask){
                 textArea.append(Constants.TASKS_RESP_MSG_FAIL);
+                textArea.append(Constants.NEW_LINE + response.getRight().getErrorCode());
+                textArea.append(Constants.NEW_LINE + response.getRight().getLocalizedMessage());
+            }
         }
     }
     
