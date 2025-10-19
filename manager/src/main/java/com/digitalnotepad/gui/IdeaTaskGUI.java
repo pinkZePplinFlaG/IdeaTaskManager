@@ -2,22 +2,26 @@ package com.digitalnotepad.gui;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.sql.Date;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.*;
 
 import com.constants.Constants;
-import com.digitalnotepad.sql.SqlQueryBuilderExecutor;
+import com.digitalnotepad.firestore.FirebaseFirestoreAdapter;
+import com.google.cloud.Timestamp;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.textparser.TextParser;
 import com.pair.Pair;
 import com.params.Params;
 
 public class IdeaTaskGUI extends JPanel implements ActionListener{
+
+    protected Firestore db;
 
     protected JPanel btnPanel;
     protected JButton ideaBtn;
@@ -48,11 +52,6 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
     protected String DELETE_TASK = "Delete Task";
     protected String SUBMIT = "Submit";
 
-    protected SqlQueryBuilderExecutor be;
-
-    static Pair<String, String> IDEAS_INSERT_TEMPLATE = new Pair<String, String>("INSERT INTO ", " ( title, created, implemented, description ) VALUES (?, ?, ?, ?);");
-    static Pair<String, String> TASKS_INSERT_TEMPLATE = new Pair<String, String>("INSERT INTO ", " ( title, created, finished, steps ) VALUES (?, ?, ?, ?);");
-
     public static Integer GAP = 5;
 
     public static Integer W = 5;
@@ -67,8 +66,8 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
     public Integer BTN_WIDTH = BTN_PANEL_WIDTH - GAP;
     public Integer BTN_HEIGHT = BTN_PANEL_HEIGHT/7 - GAP;
 
-    public IdeaTaskGUI(){
-        be = new SqlQueryBuilderExecutor();
+    public IdeaTaskGUI(Firestore db){
+        this.db = db;
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         
         
@@ -139,16 +138,12 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
             }else if(isShowIdeas || isShowTasks){
                 Params<String> params = new Params<String>(new HashMap<>());
                 if(isShowIdeas){
-                    params.addParam(Constants.TABLE_NAME_KEY, "art");
-                    params.addParam("dbConnectionStr", Constants.IDEAS_DB_CONN_STR);
                     appendIdeasToTextArea(params);
                 }else{
-                    params.addParam(Constants.TABLE_NAME_KEY, "jobsearch");
-                    params.addParam("dbConnectionStr", Constants.TASKS_DB_CONN_STR);
                     appendTasksToTextArea(params);
                 }
             }
-        }else{
+        }else if(isSubmit){
             Params<String> params = new Params<String>(new HashMap<>());
             String text = textArea.getText();
             textArea.setText(Constants.EMPTY_STRING);
@@ -161,123 +156,93 @@ public class IdeaTaskGUI extends JPanel implements ActionListener{
                 if(isCreateIdea){
                     params.addParam(Constants.IMPLEMENTED_KEY, TextParser.findImpl(text));
                     params.addParam(Constants.DESCRIPTION_KEY, TextParser.findDesc(text));
-                    params.addParam("insertTemplateRight", IDEAS_INSERT_TEMPLATE.getRight());
-                    params.addParam("insertTemplateLeft", IDEAS_INSERT_TEMPLATE.getLeft());
-                    params.addParam("dbConnectionStr", Constants.IDEAS_DB_CONN_STR);
+                    params.addParam("collectionName", "ideas");
                 }else{
                     params.addParam(Constants.FINISHED_KEY, TextParser.findFin(text));
                     params.addParam(Constants.STEPS_KEY, TextParser.findSteps(text));
-                    params.addParam("insertTemplateRight", TASKS_INSERT_TEMPLATE.getRight());
-                    params.addParam("insertTemplateLeft", TASKS_INSERT_TEMPLATE.getLeft());
-                    params.addParam("dbConnectionStr", Constants.TASKS_DB_CONN_STR);
+                    params.addParam("collectionName", "tasks");
                 }
-
-                Pair<Boolean, SQLException> response = be.buildAndExecuteInsert(params);
-                
-                if(response.getLeft() && isCreateIdea){
-                    textArea.append(Constants.IDEAS_RESP_MSG_SUCCESS);
-                }else if(isCreateIdea){
-                    textArea.append(Constants.IDEAS_RESP_MSG_FAIL);
-                    textArea.append(Constants.NEW_LINE + response.getRight().getErrorCode());   
-                    textArea.append(Constants.NEW_LINE + response.getRight().getLocalizedMessage());
-                }else if(response.getLeft() && isCreateTask){
-                    textArea.append(Constants.TASKS_RESP_MSG_SUCCESS);
-                }else{
-                    textArea.append(Constants.TASKS_RESP_MSG_FAIL);
-                    textArea.append(Constants.NEW_LINE + response.getRight().getErrorCode());
-                    textArea.append(Constants.NEW_LINE + response.getRight().getLocalizedMessage());
+                try {
+                    Timestamp response = FirebaseFirestoreAdapter.insertIntoDB(this.db, params).get().getUpdateTime();
+                    textArea.append("Inserted successfully"+Constants.NEW_LINE); 
+                    textArea.append("Update time : " + response);
+                } catch (InterruptedException | ExecutionException e1) {
+                    textArea.append("Error occured while inserting document: ");
+                    textArea.append(e1.getLocalizedMessage());
                 }
             }
 
             if(isDelIdea || isDelTask){
                 params.addParam("isDelIdea", isDelIdea.toString());
+                params.addParam("documentId",TextParser.findDocumentId(text));
                 if(isDelIdea){
-                    params.addParam("dbConnectionStr", Constants.IDEAS_DB_CONN_STR);
+                    params.addParam("collectionName", "ideas");
                 }else{
-                    params.addParam("dbConnectionStr", Constants.TASKS_DB_CONN_STR);
+                    params.addParam("collectionName", "tasks");
                 }
                 
-                Pair<Boolean, SQLException> response = be.buildAndExecuteDelete(params);
-                
-                if(response.getLeft() && isDelIdea){
-                    textArea.append("Idea deleted successfully");
-                }else if(isDelIdea){
-                    textArea.append("Idea not deleted");
-                    textArea.append(Constants.NEW_LINE + response.getRight().getErrorCode());
-                    textArea.append(Constants.NEW_LINE + response.getRight().getLocalizedMessage());
-                }else if(response.getLeft() && isDelTask){
-                    textArea.append("Task deleted successfully");
-                }else{
-                    textArea.append("Task not deleted");
-                    textArea.append(Constants.NEW_LINE + response.getRight().getErrorCode());
-                    textArea.append(Constants.NEW_LINE + response.getRight().getLocalizedMessage());
+                try {
+                    Timestamp response = FirebaseFirestoreAdapter.deleteFromDb(db, params).get().getUpdateTime();
+                    textArea.append("Deleted successfully"+Constants.NEW_LINE); 
+                    textArea.append("Update time : " + response);
+                } catch (InterruptedException | ExecutionException e1) {
+                    textArea.append("Error occured while deleting document: "); 
+                    textArea.append(e1.getLocalizedMessage());
                 }
             }
         }
-
     }
 
     private void appendIdeasToTextArea(Params<String> params){
-        Pair<ResultSet, SQLException> response = be.buildAndExecuteSelectAll(params);
-        ResultSet resultSet = response.getLeft();
-        ArrayList<String> displayStrs = new ArrayList<>();
-        if(response.getLeft() != null){
-            try {
-                while (resultSet.next()) {
-                    String title = resultSet.getString("Title");
-                    Date created = resultSet.getDate("Created");
-                    String impl = resultSet.getString("Implemented");
-                    String desc = resultSet.getString("Description");
-                    displayStrs.add(
-                        "Title: " + title + Constants.NEW_LINE + 
-                        "Created: " + created.toString() + Constants.NEW_LINE +
-                        "Implemented: " + impl + Constants.NEW_LINE + 
-                        "Description: " + desc + Constants.NEW_LINE + 
-                        Constants.NEW_LINE
-                    );
-                }
-            } catch (SQLException e1) {
-                // TODO Auto-generated catch block
-                e1.printStackTrace();
+        params.addParam("collectionName", "ideas");
+        List<QueryDocumentSnapshot> documents = null;
+        try {
+            documents = FirebaseFirestoreAdapter.selectAllFromDb(this.db, params).get().getDocuments();
+            ArrayList<String> displayStrs = new ArrayList<>();
+            for (QueryDocumentSnapshot document : documents) {
+                displayStrs.add(
+                    "DocumentId: " + document.getId() + Constants.NEW_LINE +
+                    "Title: " + document.get("title") + Constants.NEW_LINE + 
+                    "Created: " + document.get("created") + Constants.NEW_LINE +
+                    "Implemented: " + document.get("implemented") + Constants.NEW_LINE + 
+                    "Description: " + document.get("description") + Constants.NEW_LINE + Constants.NEW_LINE
+                );
             }
             for(String dispStr : displayStrs){
                 textArea.append(dispStr);
             }
+        } catch (InterruptedException | ExecutionException e) {
+            textArea.append("Error occured while selecting documents:"); 
+            textArea.append(e.getLocalizedMessage());
         }
     }
 
     private void appendTasksToTextArea(Params<String> params){
-        Pair<ResultSet, SQLException> response = be.buildAndExecuteSelectAll(params);
-        ResultSet resultSet = response.getLeft();
-        ArrayList<String> displayStrs = new ArrayList<>();
-        if(response.getLeft() != null){
-            try {
-                while (resultSet.next()) {
-                    String title = resultSet.getString("Title");
-                    Date created = resultSet.getDate("Created");
-                    String fin = resultSet.getString("Finished");
-                    String steps = resultSet.getString("Steps");
-                    displayStrs.add(
-                        "Title: " + title + Constants.NEW_LINE + 
-                        "Created: " + created.toString() + Constants.NEW_LINE +
-                        "Finished: " + fin + Constants.NEW_LINE + 
-                        "Steps: " +Constants.NEW_LINE+ steps + Constants.NEW_LINE + 
-                        Constants.NEW_LINE
-                    );
-                }
-            } catch (SQLException e1) {
-                // TODO Auto-generated catch block
-                e1.printStackTrace();
+        params.addParam("collectionName", "tasks");
+        List<QueryDocumentSnapshot> documents = null;
+        try {
+            documents = FirebaseFirestoreAdapter.selectAllFromDb(this.db, params).get().getDocuments();
+            ArrayList<String> displayStrs = new ArrayList<>();
+            for (QueryDocumentSnapshot document : documents) {
+                displayStrs.add(
+                    "DocumentId: " + document.getId() + Constants.NEW_LINE +
+                    "Title: " + document.get("title") + Constants.NEW_LINE + 
+                    "Created: " + document.get("created") + Constants.NEW_LINE +
+                    "Finished: " + document.get("finished") + Constants.NEW_LINE + 
+                    "Steps: " + document.get("steps") + Constants.NEW_LINE + Constants.NEW_LINE
+                );
             }
             for(String dispStr : displayStrs){
                 textArea.append(dispStr);
             }
+        } catch (InterruptedException | ExecutionException e) {
+            textArea.append("Error occured while selecting documents:"); 
+            textArea.append(e.getLocalizedMessage());
         }
     }
 
     private void appendDeleteTemplateToTextArea(){
-        textArea.append(Constants.TITLE);
-        textArea.append(Constants.CATEGORY);
+        textArea.append("DocumentId: ");
     }
 
     private void appendCreateIdeaTemplateToTextArea(){

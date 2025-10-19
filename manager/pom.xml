@@ -14,11 +14,12 @@
     </properties>
 
     <dependencies>
-     <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
+        <!-- Maven -->
+        <!-- https://mvnrepository.com/artifact/com.google.firebase/firebase-admin -->
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <version>9.4.0</version>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.7.0</version>
         </dependency>
     </dependencies>
 </project>
