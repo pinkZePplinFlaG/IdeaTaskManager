@@ -30,7 +30,7 @@ public class SqlQueryBuilderExecutor {
     }
 
     public Pair<Boolean, SQLException> buildAndExecuteInsert(Params<String> params){
-    try {
+        try {
             Connection conn = DriverManager.getConnection(params.getParam("dbConnectionStr"), Constants.JAVA, Constants.PASSWORD);            
             
             if(params.getParam("isIdeaInsert").equals("true")){
@@ -55,30 +55,23 @@ public class SqlQueryBuilderExecutor {
         }
         return new Pair<Boolean, SQLException>(executionSuccess, dbEx);
     }
-        //     try {
-    //         Connection conn = DriverManager.getConnection(params.getParam("dbConnectionStr"), Constants.JAVA, Constants.PASSWORD);            
-    //         PreparedStatement pstmt = 
-    //             conn.prepareStatement( 
-    //                 params.getParam("insertTemplateLeft") + 
-    //                 params.getParam(Constants.TABLE_NAME_KEY) + 
-    //                 params.getParam("insertTemplateRight")
-    //             );
-    //         pstmt.setString(1, params.getParam(Constants.TITLE_KEY));
-    //         pstmt.setDate(2, java.sql.Date.valueOf(LocalDate.now().toString()));
+
+    public Pair<Boolean, SQLException> buildAndExecuteDelete(Params<String> params){
+        try {
+            Connection conn = DriverManager.getConnection(params.getParam("dbConnectionStr"), Constants.JAVA, Constants.PASSWORD);            
             
-    //         if(params.getParam("isIdeaInsert").equals("true")){
-    //             pstmt.setString(3, params.getParam(Constants.IMPLEMENTED_KEY));
-    //             pstmt.setString(4, params.getParam(Constants.DESCRIPTION_KEY));
-    //         }else{
-    //             pstmt.setString(3, params.getParam(Constants.FINISHED_KEY));
-    //             pstmt.setString(4, params.getParam(Constants.STEPS_KEY));
-    //         }
-    //         pstmt.execute();
-    //         executionSuccess = true;
-    //     } catch (SQLException e) {
-    //         executionSuccess = false;
-    //         dbEx = e;
-    //     }
-    //     return new Pair<Boolean, SQLException>(executionSuccess, dbEx);
-    // }
+            if(params.getParam("isDelIdea").equals("true")){
+                PreparedStatement pstmt = conn.prepareStatement( "DELETE FROM art WHERE title='"+params.getParam("title")+"';");
+                pstmt.execute();
+            }else{
+                PreparedStatement pstmt = conn.prepareStatement( "DELETE FROM jobsearch WHERE title='"+params.getParam("title")+"';");
+                pstmt.execute();
+            }
+            executionSuccess = true;
+        } catch (SQLException e) {
+            executionSuccess = false;
+            dbEx = e;
+        }
+        return new Pair<Boolean, SQLException>(executionSuccess, dbEx);
+    }
 }

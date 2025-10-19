@@ -32,17 +32,17 @@ INSERT INTO art ( title, created, implemented, description) VALUES (?,?,?,?);
 
 USE tasks;
 
-GRANT SELECT, INSERT ON tasks.jobsearch TO 'java'@'localhost';
+GRANT SELECT, INSERT, DELETE ON tasks.jobsearch TO 'java'@'localhost';
 
 DESCRIBE jobsearch
 
 CREATE TABLE jobsearch
 (
   id              INT unsigned NOT NULL AUTO_INCREMENT, # Unique ID for the record
-  title           VARCHAR(150) NOT NULL,                # title of idea
+  title           VARCHAR(150) NOT NULL,                # title of task
   created         DATE NOT NULL,                        # creation date
-  finished        VARCHAR(150) NOT NULL,                # implementation date of idea
-  steps           VARCHAR(150) NOT NULL,                # description of idea
+  finished        VARCHAR(150) NOT NULL,                # finish date of task
+  steps           VARCHAR(150) NOT NULL,                # steps of task
   PRIMARY KEY     (id)                                  # Make the id the primary key
 );
 
