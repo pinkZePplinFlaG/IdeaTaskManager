@@ -15,22 +15,12 @@ import com.params.Params;
 public class SqlQueryBuilderExecutor {
     private Boolean executionSuccess;
     private SQLException dbEx;
-
-    static Pair<String, String> IDEAS_INSERT_TEMPLATE = new Pair<String, String>("INSERT INTO ", " ( title, created, implemented, description ) VALUES (?, ?, ?, ?);");
-    static Pair<String, String> TASKS_INSERT_TEMPLATE = new Pair<String, String>("INSERT INTO ", " ( title, created, finished, steps ) VALUES (?, ?, ?, ?);");
     static Pair<String, String> SELECT_ALL_TEMPLATE = new Pair<String, String>("SELECT * FROM ", ";");
-
-    public Pair<Boolean, SQLException> buildInsertStatementAndExecute( Params<String> params ){
-        if(params.getParam(Constants.TABLE_NAME_KEY).equals("art"))
-            return buildAndExecuteIdeaInsert(params);
-        else
-            return buildAndExecuteTaskInsert(params); 
-    }
 
     public Pair<ResultSet, SQLException> buildAndExecuteSelectAll(Params<String> params){
         ResultSet rs = null;
         try {
-            Connection conn = DriverManager.getConnection(Constants.TASKS_DB_CONN_STR, Constants.JAVA, Constants.PASSWORD); 
+            Connection conn = DriverManager.getConnection(params.getParam("dbConnectionStr"), Constants.JAVA, Constants.PASSWORD); 
             PreparedStatement pstmt = conn.prepareStatement(SELECT_ALL_TEMPLATE.getLeft() + params.getParam(Constants.TABLE_NAME_KEY) + SELECT_ALL_TEMPLATE.getRight());
             rs = pstmt.executeQuery();
         } catch (SQLException e) {
@@ -39,20 +29,25 @@ public class SqlQueryBuilderExecutor {
         return new Pair<ResultSet, SQLException>(rs, dbEx);
     }
 
-    private Pair<Boolean, SQLException> buildAndExecuteIdeaInsert(Params<String> params){
-        try {
-            Connection conn = DriverManager.getConnection(Constants.IDEAS_DB_CONN_STR, Constants.JAVA, Constants.PASSWORD);            
-            PreparedStatement pstmt = 
-                conn.prepareStatement(
-                    IDEAS_INSERT_TEMPLATE.getLeft() + 
-                    params.getParam(Constants.TABLE_NAME_KEY) + 
-                    IDEAS_INSERT_TEMPLATE.getRight()
-                );
-            pstmt.setString(1, params.getParam(Constants.TITLE_KEY));
-            pstmt.setDate(2, java.sql.Date.valueOf(LocalDate.now().toString()));
-            pstmt.setString(3, params.getParam(Constants.IMPLEMENTED_KEY));
-            pstmt.setString(4, params.getParam(Constants.DESCRIPTION_KEY));
-            pstmt.execute();
+    public Pair<Boolean, SQLException> buildAndExecuteInsert(Params<String> params){
+    try {
+            Connection conn = DriverManager.getConnection(params.getParam("dbConnectionStr"), Constants.JAVA, Constants.PASSWORD);            
+            
+            if(params.getParam("isIdeaInsert").equals("true")){
+                PreparedStatement pstmt = conn.prepareStatement( "INSERT INTO art ( title, created, implemented, description) VALUES (?,?,?,?);");
+                pstmt.setString(1, params.getParam("title"));
+                pstmt.setDate(2, java.sql.Date.valueOf(LocalDate.now().toString()));
+                pstmt.setString(3, params.getParam("implemented"));
+                pstmt.setString(4, params.getParam("description"));
+                pstmt.execute();
+            }else{
+                PreparedStatement pstmt = conn.prepareStatement( "INSERT INTO jobsearch ( title, created, finished, steps) VALUES (?,?,?,?);");
+                pstmt.setString(1, params.getParam("title"));
+                pstmt.setDate(2, java.sql.Date.valueOf(LocalDate.now().toString()));
+                pstmt.setString(3, params.getParam(Constants.FINISHED_KEY));
+                pstmt.setString(4, params.getParam(Constants.STEPS_KEY));
+                pstmt.execute();
+            }
             executionSuccess = true;
         } catch (SQLException e) {
             executionSuccess = false;
@@ -60,26 +55,30 @@ public class SqlQueryBuilderExecutor {
         }
         return new Pair<Boolean, SQLException>(executionSuccess, dbEx);
     }
-
-    private Pair<Boolean, SQLException> buildAndExecuteTaskInsert(Params<String> params){
-        try {
-            Connection conn = DriverManager.getConnection(Constants.TASKS_DB_CONN_STR, Constants.JAVA, Constants.PASSWORD); 
-            PreparedStatement pstmt = 
-                conn.prepareStatement(
-                    TASKS_INSERT_TEMPLATE.getLeft() + 
-                    params.getParam(Constants.TABLE_NAME_KEY) + 
-                    TASKS_INSERT_TEMPLATE.getRight()
-                );
-            pstmt.setString(1, params.getParam(Constants.TITLE_KEY));
-            pstmt.setDate(2, java.sql.Date.valueOf(LocalDate.now().toString()));
-            pstmt.setString(3, params.getParam(Constants.FINISHED_KEY));
-            pstmt.setString(4, params.getParam(Constants.STEPS_KEY));
-            pstmt.execute();
-            executionSuccess = true;
-        } catch (SQLException e) {
-            executionSuccess = false;
-            dbEx = e;
-        }
-        return new Pair<Boolean, SQLException>(executionSuccess, dbEx);
-    }
+        //     try {
+    //         Connection conn = DriverManager.getConnection(params.getParam("dbConnectionStr"), Constants.JAVA, Constants.PASSWORD);            
+    //         PreparedStatement pstmt = 
+    //             conn.prepareStatement( 
+    //                 params.getParam("insertTemplateLeft") + 
+    //                 params.getParam(Constants.TABLE_NAME_KEY) + 
+    //                 params.getParam("insertTemplateRight")
+    //             );
+    //         pstmt.setString(1, params.getParam(Constants.TITLE_KEY));
+    //         pstmt.setDate(2, java.sql.Date.valueOf(LocalDate.now().toString()));
+            
+    //         if(params.getParam("isIdeaInsert").equals("true")){
+    //             pstmt.setString(3, params.getParam(Constants.IMPLEMENTED_KEY));
+    //             pstmt.setString(4, params.getParam(Constants.DESCRIPTION_KEY));
+    //         }else{
+    //             pstmt.setString(3, params.getParam(Constants.FINISHED_KEY));
+    //             pstmt.setString(4, params.getParam(Constants.STEPS_KEY));
+    //         }
+    //         pstmt.execute();
+    //         executionSuccess = true;
+    //     } catch (SQLException e) {
+    //         executionSuccess = false;
+    //         dbEx = e;
+    //     }
+    //     return new Pair<Boolean, SQLException>(executionSuccess, dbEx);
+    // }
 }
